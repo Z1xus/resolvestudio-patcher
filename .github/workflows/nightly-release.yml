@@ -1,0 +1,102 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            target: x86_64-unknown-linux-musl
+          - runner: windows-2025
+            target: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Windows tools
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          for /f "usebackq delims=" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.14.44.17.14.x86.x64 -property installationPath`) do set "VS_INSTALL=%%i"
+          if not defined VS_INSTALL exit /b 1
+          call "%VS_INSTALL%\VC\Auxiliary\Build\vcvarsall.bat" x64 10.0.26100.0 -vcvars_ver=14.44.35207
+          if errorlevel 1 exit /b 1
+          if not "%VCToolsVersion%"=="14.44.35207" exit /b 1
+          echo PATH=%PATH%>> "%GITHUB_ENV%"
+          echo LIB=%LIB%>> "%GITHUB_ENV%"
+          echo INCLUDE=%INCLUDE%>> "%GITHUB_ENV%"
+          echo VCINSTALLDIR=%VCINSTALLDIR%>> "%GITHUB_ENV%"
+          echo VCToolsVersion=%VCToolsVersion%>> "%GITHUB_ENV%"
+          echo VCToolsInstallDir=%VCToolsInstallDir%>> "%GITHUB_ENV%"
+          echo WindowsSdkDir=%WindowsSdkDir%>> "%GITHUB_ENV%"
+          echo WindowsSDKVersion=%WindowsSDKVersion%>> "%GITHUB_ENV%"
+      - name: Rust stable
+        id: rust
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          rustup toolchain install stable --profile minimal --no-self-update --target "$TARGET"
+          echo "version=$(rustc -Vv | sha256sum | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target/
+          key: build-${{ matrix.target }}-${{ steps.rust.outputs.version }}-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', '.cargo/config.toml', '.github/build.sh', '.github/workflows/nightly-release.yml') }}-${{ github.sha }}
+          restore-keys: |
+            build-${{ matrix.target }}-${{ steps.rust.outputs.version }}-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', '.cargo/config.toml', '.github/build.sh', '.github/workflows/nightly-release.yml') }}-
+      - name: Build
+        env:
+          TARGET: ${{ matrix.target }}
+        run: bash .github/build.sh "$TARGET"
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: ${{ matrix.target }}
+          path: dist/
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8.0.1
+        with:
+          path: dist
+      - name: Prepare release
+        run: |
+          linux=dist/x86_64-unknown-linux-musl
+          windows=dist/x86_64-pc-windows-msvc
+          mv "$linux/resolvestudio-patcher-linux-x86_64" .
+          mv "$windows/resolvestudio-patcher-windows-x86_64.exe" .
+          cat "$linux/BUILD.txt" "$windows/BUILD.txt" > BUILD.txt
+          sha256sum resolvestudio-patcher-linux-x86_64 resolvestudio-patcher-windows-x86_64.exe BUILD.txt > SHA256SUMS
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create "nightly-$(date -u +%Y%m%d)-${GITHUB_SHA:0:7}" \
+            resolvestudio-patcher-linux-x86_64 resolvestudio-patcher-windows-x86_64.exe BUILD.txt SHA256SUMS \
+            --target "$GITHUB_SHA" \
+            --notes "Built from [${GITHUB_SHA:0:7}](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA})." \
+            --latest
