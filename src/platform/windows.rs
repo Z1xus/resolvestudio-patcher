@@ -17,8 +17,7 @@ use windows_sys::Win32::{
         INVALID_HANDLE_VALUE,
     },
     Security::{
-        DACL_SECURITY_INFORMATION, GROUP_SECURITY_INFORMATION, GetKernelObjectSecurity,
-        GetSecurityDescriptorControl, OWNER_SECURITY_INFORMATION,
+        DACL_SECURITY_INFORMATION, GetKernelObjectSecurity, GetSecurityDescriptorControl,
         PROTECTED_DACL_SECURITY_INFORMATION, SE_DACL_PROTECTED, SetKernelObjectSecurity,
         UNPROTECTED_DACL_SECURITY_INFORMATION,
     },
@@ -26,7 +25,7 @@ use windows_sys::Win32::{
         BY_HANDLE_FILE_INFORMATION, FILE_ATTRIBUTE_REPARSE_POINT, FILE_FLAG_OPEN_REPARSE_POINT,
         FILE_GENERIC_READ, FILE_GENERIC_WRITE, FILE_SHARE_DELETE, FILE_SHARE_READ,
         GetFileInformationByHandle, MOVEFILE_REPLACE_EXISTING, MOVEFILE_WRITE_THROUGH, MoveFileExW,
-        WRITE_DAC, WRITE_OWNER,
+        WRITE_DAC,
     },
     System::Diagnostics::ToolHelp::{
         CreateToolhelp32Snapshot, PROCESSENTRY32W, Process32FirstW, Process32NextW,
@@ -42,7 +41,7 @@ pub fn options() -> OpenOptions {
 
 pub fn temporary_options() -> OpenOptions {
     let mut options = options();
-    options.access_mode(FILE_GENERIC_READ | FILE_GENERIC_WRITE | WRITE_DAC | WRITE_OWNER);
+    options.access_mode(FILE_GENERIC_READ | FILE_GENERIC_WRITE | WRITE_DAC);
     options
 }
 
@@ -88,7 +87,7 @@ pub fn same_file(source: &File, path: &Path) -> io::Result<bool> {
 }
 
 pub fn preserve(file: &File, source: &File) -> io::Result<()> {
-    let flags = OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION;
+    let flags = DACL_SECURITY_INFORMATION;
     let mut size = 0;
     unsafe {
         GetKernelObjectSecurity(source.as_raw_handle(), flags, null_mut(), 0, &mut size);
