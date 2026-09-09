@@ -1,5 +1,8 @@
 # resolvestudio-patcher
 
+<picture><source media="(prefers-color-scheme: dark)" srcset="https://www.shieldcn.dev/github/downloads/Z1xus/resolvestudio-patcher.svg?variant=secondary&amp;size=xs&amp;mode=dark"><img alt="Total downloads" src="https://www.shieldcn.dev/github/downloads/Z1xus/resolvestudio-patcher.svg?variant=secondary&amp;size=xs&amp;mode=light"></picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset="https://www.shieldcn.dev/github/last-commit/Z1xus/resolvestudio-patcher.svg?variant=secondary&amp;size=xs&amp;mode=dark"><img alt="Last commit" src="https://www.shieldcn.dev/github/last-commit/Z1xus/resolvestudio-patcher.svg?variant=secondary&amp;size=xs&amp;mode=light"></picture>
+
 a patcher for davinci resolve studio
 
 
