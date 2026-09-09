@@ -134,7 +134,7 @@ impl Transaction {
             .open(backups.join("lock"))
             .map_err(|e| error("cannot open backup lock", e))?;
         lock.try_lock()
-            .map_err(|_| "another patch or restore is in progress")?;
+            .map_err(|_| "another patch, restore or cleanup is in progress")?;
         let transaction = Self {
             target,
             backups,
@@ -237,6 +237,70 @@ impl Transaction {
         )?;
         statefile.replace(&self.backups.join("state"))?;
         self.replace(&staged, original)
+    }
+
+    pub fn cleanup(
+        &mut self,
+        confirm: impl FnOnce(u64) -> Result<bool, String>,
+    ) -> Result<Option<u64>, String> {
+        let mut files = Vec::new();
+        let mut bytes = 0u64;
+        for entry in
+            fs::read_dir(&self.backups).map_err(|e| error("cannot read backup directory", e))?
+        {
+            let entry = entry.map_err(|e| error("cannot read backup entry", e))?;
+            let name = entry.file_name();
+            let Some(name) = name.to_str() else {
+                continue;
+            };
+            let backup = name.strip_suffix(".bak").is_some_and(|hash| {
+                hash.len() == 64 && hash.bytes().all(|byte| byte.is_ascii_hexdigit())
+            });
+            let temporary = name
+                .strip_prefix(".patcher-")
+                .and_then(|name| name.strip_suffix(".tmp"))
+                .and_then(|name| name.split_once('-'))
+                .is_some_and(|(pid, nonce)| {
+                    !pid.is_empty()
+                        && !nonce.is_empty()
+                        && pid
+                            .bytes()
+                            .chain(nonce.bytes())
+                            .all(|byte| byte.is_ascii_digit())
+                });
+            if !backup && !temporary && name != "state" {
+                continue;
+            }
+            let path = entry.path();
+            let metadata =
+                fs::symlink_metadata(&path).map_err(|e| error("cannot inspect backup file", e))?;
+            if !platform::regular(&metadata) {
+                return Err(
+                    "backup entry must be a regular file, symlinks are not supported".into(),
+                );
+            }
+            bytes = bytes
+                .checked_add(metadata.len())
+                .ok_or("backup size overflow")?;
+            files.push(path);
+        }
+        if files.is_empty() {
+            return Ok(Some(0));
+        }
+        if !confirm(bytes)? {
+            return Ok(None);
+        }
+        self.verify_path()?;
+        for path in files {
+            fs::remove_file(&path).map_err(|e| {
+                error(
+                    &format!("cleanup incomplete, cannot remove {}", path.display()),
+                    e,
+                )
+            })?;
+        }
+        sync_dir(&self.backups)?;
+        Ok(Some(bytes))
     }
 
     pub fn restore(&mut self) -> Result<bool, String> {

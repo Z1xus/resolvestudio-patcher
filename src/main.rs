@@ -10,7 +10,12 @@ use resolvestudio_patcher::{
     binary, engine, profiles,
     transaction::{self, Transaction},
 };
-use std::{env, fs, path::PathBuf, process::ExitCode};
+use std::{
+    env, fs,
+    io::{self, Write},
+    path::PathBuf,
+    process::ExitCode,
+};
 
 const HELP: &str = "resolvestudio-patcher
 
@@ -18,10 +23,33 @@ usage:
   resolvestudio-patcher check <path>
   resolvestudio-patcher patch <path>
   resolvestudio-patcher restore <path>
+  resolvestudio-patcher cleanup <path>
 
 --verbose, -v: show hashes, offsets and bytes
 --try-profile <id>: try a profile outside its version range (check or patch)
 backups: <path>.backups/";
+
+fn confirm_cleanup(bytes: u64) -> Result<bool, String> {
+    let mut size = bytes as f64;
+    let mut unit = "bytes";
+    for next in ["KiB", "MiB", "GiB", "TiB"] {
+        if size < 1024.0 {
+            break;
+        }
+        size /= 1024.0;
+        unit = next;
+    }
+    print!(
+        "this will remove your backups, freeing approximately {size:.2} {unit} of space. \
+         you will not be able to go back to that version. do you wish to continue? y/n: "
+    );
+    io::stdout().flush().map_err(|e| e.to_string())?;
+    let mut answer = String::new();
+    io::stdin()
+        .read_line(&mut answer)
+        .map_err(|e| e.to_string())?;
+    Ok(answer.trim().eq_ignore_ascii_case("y"))
+}
 
 fn run() -> Result<(), String> {
     let mut args: Vec<_> = env::args_os().skip(1).collect();
@@ -62,10 +90,10 @@ fn run() -> Result<(), String> {
         None => return Err("command and executable path required, use --help".into()),
     };
     match command {
-        "check" | "patch" | "restore" if args.len() == 1 => {
+        "check" | "patch" | "restore" | "cleanup" if args.len() == 1 => {
             return Err("executable path required, use --help".into());
         }
-        "check" | "patch" | "restore" if args.len() == 2 => {}
+        "check" | "patch" | "restore" | "cleanup" if args.len() == 2 => {}
         _ => return Err("invalid arguments, use --help".into()),
     }
     if try_profile.is_some() && !matches!(command, "check" | "patch") {
@@ -74,6 +102,16 @@ fn run() -> Result<(), String> {
     let path = PathBuf::from(&args[1]);
     if path.as_os_str().is_empty() {
         return Err("executable path required, use --help".into());
+    }
+    if command == "cleanup" {
+        let mut transaction = Transaction::open(&path)?;
+        log::info(format!("backup folder: {}", transaction.backups.display()));
+        if transaction.cleanup(confirm_cleanup)?.is_some() {
+            log::success("cleanup complete");
+        } else {
+            log::info("cleanup cancelled");
+        }
+        return Ok(());
     }
     if command == "restore" {
         log::info(format!("restoring {}", path.display()));

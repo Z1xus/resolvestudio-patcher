@@ -38,6 +38,12 @@ resolvestudio-patcher restore <path>
 
 (backups are saved in `<path>.backups/`)
 
+to remove backups:
+
+```sh
+resolvestudio-patcher cleanup <path>
+```
+
 to check a build outside the version range:
 
 ```sh
