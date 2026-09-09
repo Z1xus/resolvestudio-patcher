@@ -45,7 +45,6 @@ resolvestudio-patcher check <path> --try-profile linux-21.1
 ```
 
 use the same option with `patch` to apply it  
-use `windows-21.1` for windows  
 a signature match does not guarantee that resolve will work!!!
 
 ## trust

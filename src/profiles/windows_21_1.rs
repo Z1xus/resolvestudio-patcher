@@ -1,6 +1,6 @@
 use crate::{
     binary::Platform,
-    profile::{Action, Anchor, Call, Patch, Profile},
+    profile::{Action, Anchor, Build, Call, Patch, Profile},
     version::{Version, VersionRange},
 };
 
@@ -11,7 +11,11 @@ pub const PROFILE: Profile = Profile {
         min: Version([21, 1, 0, 0]),
         max: Version([21, 1, u32::MAX, u32::MAX]),
     },
-    builds: &[],
+    builds: &[Build {
+        version: Version([21, 1, 0, 14]),
+        original_sha256: "0a8f20c70851e629c1753ed537801d1df0b5162ad98a5ab399e4abc7b77df236",
+        patched_sha256: "b9676fae37c87f3df8ccf67dd65e2e82c8e22ebac10d4b19adc7981e8ba72c11",
+    }],
     patches: &[Patch {
         name: "startup",
         anchor: Anchor {
