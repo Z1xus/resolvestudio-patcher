@@ -34,6 +34,16 @@ pub struct Rel32 {
     pub instruction_end: usize,
 }
 
+pub struct Rel8 {
+    pub displacement_offset: usize,
+    pub instruction_end: usize,
+}
+
+pub enum Verify {
+    Rel32(Rel32),
+    Rel8(Rel8),
+}
+
 pub enum Action {
     Bytes(&'static [u8]),
     Code {
@@ -42,7 +52,7 @@ pub enum Action {
     },
     Jump {
         target: Anchor,
-        verify: Option<Rel32>,
+        verify: Option<Verify>,
     },
     Arm64Branch {
         target: Anchor,

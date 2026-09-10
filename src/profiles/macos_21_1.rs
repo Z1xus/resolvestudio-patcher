@@ -1,6 +1,6 @@
 use crate::{
     binary::{Architecture, Platform},
-    profile::{Action, Anchor, Build, Patch, Profile, Rel32},
+    profile::{Action, Anchor, Build, Patch, Profile, Rel32, Verify},
     version::{Version, VersionRange},
 };
 
@@ -31,10 +31,10 @@ pub const X86_64: Profile = Profile {
                 signature: "BF 01 00 00 00 E8 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 89 C7 E8 ?? ?? ?? ?? B0 01 48 83 C4 48 5B 5D C3",
                 offset: 0,
             },
-            verify: Some(Rel32 {
+            verify: Some(Verify::Rel32(Rel32 {
                 displacement_offset: 47,
                 instruction_end: 51,
-            }),
+            })),
         },
     }],
 };

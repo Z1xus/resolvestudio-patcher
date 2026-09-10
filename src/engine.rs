@@ -145,14 +145,24 @@ fn change(
             }
             let target = locate(data, segments, target.signature)?.at(target.offset, 1)?;
             if let Some(reference) = verify {
-                let displacement = anchor.at(reference.displacement_offset, 4)?;
-                let displacement = i32::from_le_bytes(
-                    data[displacement.offset..displacement.offset + 4]
-                        .try_into()
-                        .unwrap(),
-                );
-                let next = anchor.at(reference.instruction_end, 0)?;
-                if next.address.checked_add_signed(displacement as i64) != Some(target.address) {
+                let (width, displacement) = match reference {
+                    crate::profile::Verify::Rel32(reference) => {
+                        let displacement = anchor.at(reference.displacement_offset, 4)?;
+                        let displacement = i32::from_le_bytes(
+                            data[displacement.offset..displacement.offset + 4]
+                                .try_into()
+                                .unwrap(),
+                        ) as i64;
+                        (reference.instruction_end, displacement)
+                    }
+                    crate::profile::Verify::Rel8(reference) => {
+                        let displacement = anchor.at(reference.displacement_offset, 1)?;
+                        let displacement = data[displacement.offset] as i8 as i64;
+                        (reference.instruction_end, displacement)
+                    }
+                };
+                let next = anchor.at(width, 0)?;
+                if next.address.checked_add_signed(displacement) != Some(target.address) {
                     return Err("branch target mismatch".into());
                 }
             }
