@@ -1,13 +1,19 @@
-#[cfg(not(all(
-    any(target_os = "linux", target_os = "windows"),
-    target_arch = "x86_64"
+#[cfg(not(any(
+    all(
+        any(target_os = "linux", target_os = "windows"),
+        target_arch = "x86_64"
+    ),
+    all(
+        target_os = "macos",
+        any(target_arch = "x86_64", target_arch = "aarch64")
+    )
 )))]
-compile_error!("resolvestudio-patcher supports linux and windows x86-64 only");
+compile_error!("supported hosts: linux/windows x86-64, macos x86-64/arm64");
 
 mod log;
 
 use resolvestudio_patcher::{
-    binary, engine, profiles,
+    binary, bundle, engine, profiles,
     transaction::{self, Transaction},
 };
 use std::{
@@ -27,7 +33,8 @@ usage:
 
 --verbose, -v: show hashes, offsets and bytes
 --try-profile <id>: try a profile outside its version range (check or patch)
-backups: <path>.backups/";
+macos: <path> can also be an .app bundle
+backups: <path>.backups/ (beside the .app for bundled executables)";
 
 fn confirm_cleanup(bytes: u64) -> Result<bool, String> {
     let mut size = bytes as f64;
@@ -68,14 +75,13 @@ fn run() -> Result<(), String> {
         .is_some_and(|arg| arg == "--help" || arg == "-h")
     {
         println!("{HELP}");
-        println!(
-            "available profiles: {}",
-            profiles::ALL
-                .iter()
-                .map(|profile| profile.id)
-                .collect::<Vec<_>>()
-                .join(", ")
-        );
+        let mut ids = Vec::new();
+        for profile in profiles::ALL {
+            if !ids.contains(&profile.id) {
+                ids.push(profile.id);
+            }
+        }
+        println!("available profiles: {}", ids.join(", "));
         return Ok(());
     }
     if args.len() == 1 && args[0] == "--version" {
@@ -103,6 +109,7 @@ fn run() -> Result<(), String> {
     if path.as_os_str().is_empty() {
         return Err("executable path required, use --help".into());
     }
+    let path = bundle::executable(&path)?;
     if command == "cleanup" {
         let mut transaction = Transaction::open(&path)?;
         log::info(format!("backup folder: {}", transaction.backups.display()));
@@ -134,7 +141,8 @@ fn run() -> Result<(), String> {
         None => fs::read(&path)
             .map_err(|e| format!("cannot read executable: {}", e.to_string().to_lowercase()))?,
     };
-    let (platform, segments) = binary::inspect(&data)?;
+    let slices = binary::inspect(&data)?;
+    let platform = slices[0].target.platform;
     if command == "patch" && !platform.is_native() {
         return Err("run patch on the executable's operating system".into());
     }
@@ -142,46 +150,82 @@ fn run() -> Result<(), String> {
     if verbose {
         log::info(format!("sha256: {fingerprint}"));
     }
-    let version = engine::identify(&data, &fingerprint, profiles::ALL).map_err(|e| {
-        log::unknown(&e);
-        "cannot identify build".to_string()
-    })?;
     if let Some(id) = &try_profile {
         log::warning(format!("trying profile: {id}, version range ignored"));
     }
-    let plan = engine::plan(
-        &data,
-        &segments,
-        version,
-        &fingerprint,
-        profiles::ALL,
-        try_profile.as_deref(),
-        platform,
-    )?;
-    if plan.build.is_some() {
-        log::success(format!("tested build: {version}"));
-    } else {
-        log::warning(format!("untested build: {version}, signatures passed"));
-    }
-    if verbose {
-        log::info(format!("profile: {}", plan.profile.id));
-        for change in &plan.changes {
-            log::info(format!(
-                "{}: offset {:#x}, address {:#x}, {:02x?} -> {:02x?}",
-                change.name,
-                change.location.offset,
-                change.location.address,
-                change.before,
-                change.after
+    let mut plans = Vec::new();
+    let mut image_version = None;
+    for slice in &slices {
+        let bytes = &data[slice.offset..slice.offset + slice.size];
+        let slice_hash = if slice.offset == 0 && slice.size == data.len() {
+            fingerprint.clone()
+        } else {
+            engine::hash(bytes)
+        };
+        let version = engine::identify(bytes, &slice_hash, profiles::ALL).map_err(|e| {
+            log::unknown(&e);
+            format!("cannot identify {} build", slice.target.architecture)
+        })?;
+        if image_version.is_some_and(|previous| previous != version) {
+            return Err("conflicting versions across executable slices".into());
+        }
+        image_version = Some(version);
+        let plan = engine::plan(
+            bytes,
+            &slice.segments,
+            version,
+            &slice_hash,
+            profiles::ALL,
+            try_profile.as_deref(),
+            slice.target,
+        )?;
+        if plan.build.is_some() {
+            log::success(format!(
+                "known build: {version} ({})",
+                slice.target.architecture
+            ));
+        } else {
+            log::warning(format!(
+                "untested build: {version} ({}), signatures passed",
+                slice.target.architecture
             ));
         }
+        if verbose {
+            log::info(format!(
+                "profile: {} ({})",
+                plan.profile.id, slice.target.architecture
+            ));
+            for change in &plan.changes {
+                log::info(format!(
+                    "{}: offset {:#x}, address {:#x}, {:02x?} -> {:02x?}",
+                    change.name,
+                    slice.offset + change.location.offset,
+                    change.location.address,
+                    change.before,
+                    change.after
+                ));
+            }
+        }
+        plans.push(plan);
     }
-    if plan.already_patched {
+    if plans
+        .iter()
+        .any(|plan| plan.already_patched != plans[0].already_patched)
+    {
+        return Err("partially patched executable slices".into());
+    }
+    if plans[0].already_patched {
         log::warning("already patched");
         return Ok(());
     }
     if let Some(transaction) = &mut transaction {
-        let output_hash = plan.apply(&mut data)?;
+        if platform == binary::Platform::Macos {
+            log::info("preserving entitlements and creating ad hoc code signatures");
+        }
+        for (slice, plan) in slices.iter().zip(&plans) {
+            plan.apply(&mut data[slice.offset..slice.offset + slice.size])?;
+        }
+        let output_hash = engine::hash(&data);
         log::info("backing up and patching");
         if let Err(error) = transaction.patch(&data, &fingerprint, &output_hash) {
             log::warning(format!("backup folder: {}", transaction.backups.display()));

@@ -1,3 +1,4 @@
+#[cfg(target_os = "linux")]
 use crate::transaction::error;
 use std::{
     fs::{self, File, Metadata, OpenOptions},
@@ -45,7 +46,20 @@ pub fn preserve(file: &File, source: &File) -> io::Result<()> {
     {
         return Err(io::Error::last_os_error());
     }
-    file.set_permissions(fs::Permissions::from_mode(metadata.mode() & 0o7777))
+    file.set_permissions(fs::Permissions::from_mode(metadata.mode() & 0o7777))?;
+    #[cfg(target_os = "macos")]
+    if unsafe {
+        libc::fcopyfile(
+            source.as_raw_fd(),
+            file.as_raw_fd(),
+            std::ptr::null_mut(),
+            libc::COPYFILE_ACL | libc::COPYFILE_XATTR,
+        )
+    } != 0
+    {
+        return Err(io::Error::last_os_error());
+    }
+    Ok(())
 }
 pub fn sync_dir(path: &Path) -> io::Result<()> {
     File::open(path)?.sync_all()
@@ -54,6 +68,7 @@ pub fn replace(source: &Path, target: &Path) -> io::Result<()> {
     fs::rename(source, target)
 }
 
+#[cfg(target_os = "linux")]
 pub fn ensure_idle(target: &Path) -> Result<(), String> {
     let metadata = fs::metadata(target).map_err(|e| error("cannot inspect executable", e))?;
     for entry in fs::read_dir("/proc")

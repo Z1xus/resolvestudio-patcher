@@ -100,6 +100,8 @@ pub struct Transaction {
 
 impl Transaction {
     pub fn open(path: &Path) -> Result<Self, String> {
+        let path = crate::bundle::executable(path)?;
+        let path = path.as_path();
         let metadata =
             fs::symlink_metadata(path).map_err(|e| error("cannot inspect executable", e))?;
         if !platform::regular(&metadata) {
@@ -109,14 +111,15 @@ impl Transaction {
         ensure_idle(&target)?;
         let source = platform::open_source(&target)
             .map_err(|e| error("cannot open executable for replacement", e))?;
-        let mut name = target
+        let backup_base = crate::bundle::containing_app(&target).unwrap_or(&target);
+        let mut name = backup_base
             .file_name()
             .ok_or("target has no filename")?
             .to_os_string();
         name.push(".backups");
-        let backups = target.with_file_name(name);
+        let backups = backup_base.with_file_name(name);
         match platform::create_dir(&backups) {
-            Ok(()) => sync_dir(target.parent().unwrap())?,
+            Ok(()) => sync_dir(backups.parent().unwrap())?,
             Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {}
             Err(e) => return Err(error("cannot create backup directory", e)),
         }

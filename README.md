@@ -10,6 +10,7 @@ a patcher for davinci resolve studio
 | --- | --- | --- |
 | linux x86-64 | 21.1.0.0014 | 21.1.x |
 | windows x86-64 | 21.1.0.0014 | 21.1.x |
+| macos x86-64 and arm64 | 21.1.0.0014 | 21.1.x |
 
 other versions in the range may be supported but are untested.  
 (please open an issue with any working versions missing from the tested list so i can add them)

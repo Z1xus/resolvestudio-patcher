@@ -1,5 +1,5 @@
 use crate::{
-    binary::{Platform, Segment},
+    binary::{Architecture, Platform, Segment, Target},
     profile::{Action, Build, Patch, Profile},
     signature::Signature,
     version::{self, Version},
@@ -96,13 +96,26 @@ pub struct Plan<'a> {
     input_hash: String,
 }
 
-fn change(data: &[u8], segments: &[Segment], patch: &Patch) -> Result<Change, String> {
+fn change(
+    data: &[u8],
+    segments: &[Segment],
+    patch: &Patch,
+    architecture: Architecture,
+) -> Result<Change, String> {
     let anchor = locate(data, segments, patch.anchor.signature)?;
     let expected = Signature::parse(patch.expected)?;
     let location = anchor.at(patch.anchor.offset, expected.width())?;
+    if architecture == Architecture::Arm64
+        && (!location.address.is_multiple_of(4) || !expected.width().is_multiple_of(4))
+    {
+        return Err("arm64 patches must contain complete aligned instructions".into());
+    }
     let after = match &patch.action {
         Action::Bytes(bytes) => bytes.to_vec(),
         Action::Code { bytes, calls } => {
+            if architecture != Architecture::X86_64 {
+                return Err("x86 call relocation on a different architecture".into());
+            }
             let mut bytes = bytes.to_vec();
             let mut end = 0;
             for call in *calls {
@@ -127,6 +140,9 @@ fn change(data: &[u8], segments: &[Segment], patch: &Patch) -> Result<Change, St
             bytes
         }
         Action::Jump { target, verify } => {
+            if architecture != Architecture::X86_64 {
+                return Err("x86 jump on a different architecture".into());
+            }
             let target = locate(data, segments, target.signature)?.at(target.offset, 1)?;
             if let Some(reference) = verify {
                 let displacement = anchor.at(reference.displacement_offset, 4)?;
@@ -146,6 +162,53 @@ fn change(data: &[u8], segments: &[Segment], patch: &Patch) -> Result<Change, St
             let mut bytes = vec![0xe9];
             bytes.extend_from_slice(&displacement.to_le_bytes());
             bytes
+        }
+        Action::Arm64Branch {
+            target,
+            link,
+            verify,
+        } => {
+            if architecture != Architecture::Arm64 {
+                return Err("arm64 branch on a different architecture".into());
+            }
+            let target = locate(data, segments, target.signature)?.at(target.offset, 4)?;
+            if location.address % 4 != 0 || target.address % 4 != 0 {
+                return Err("unaligned arm64 branch".into());
+            }
+            if let Some(offset) = verify {
+                let reference = anchor.at(*offset, 4)?;
+                if !reference.address.is_multiple_of(4) {
+                    return Err("unaligned arm64 branch reference".into());
+                }
+                let instruction = u32::from_le_bytes(
+                    data[reference.offset..reference.offset + 4]
+                        .try_into()
+                        .unwrap(),
+                );
+                let (immediate, bits) = if instruction & 0x7c000000 == 0x14000000 {
+                    (instruction & 0x03ffffff, 26)
+                } else if instruction & 0xff000010 == 0x54000000
+                    || instruction & 0x7e000000 == 0x34000000
+                {
+                    ((instruction >> 5) & 0x7ffff, 19)
+                } else if instruction & 0x7e000000 == 0x36000000 {
+                    ((instruction >> 5) & 0x3fff, 14)
+                } else {
+                    return Err("unsupported arm64 branch reference".into());
+                };
+                let displacement = (((immediate << (32 - bits)) as i32 >> (32 - bits)) as i64) * 4;
+                if reference.address.checked_add_signed(displacement) != Some(target.address) {
+                    return Err("branch target mismatch".into());
+                }
+            }
+            let displacement = target.address as i128 - location.address as i128;
+            if !(-(1i128 << 27)..(1i128 << 27)).contains(&displacement) {
+                return Err("arm64 branch target out of range".into());
+            }
+            let opcode = if *link { 0x94000000u32 } else { 0x14000000u32 };
+            (opcode | ((displacement / 4) as u32 & 0x03ffffff))
+                .to_le_bytes()
+                .to_vec()
         }
     };
     if after.len() != expected.width() {
@@ -178,7 +241,7 @@ pub fn plan<'a>(
     fingerprint: &str,
     profiles: &'a [Profile],
     try_profile: Option<&str>,
-    platform: Platform,
+    target: Target,
 ) -> Result<Plan<'a>, String> {
     let candidates: Vec<_> = profiles
         .iter()
@@ -186,12 +249,14 @@ pub fn plan<'a>(
             Some(id) => profile.id == id,
             None => profile.versions.contains(version),
         })
-        .filter(|profile| profile.platform == platform)
+        .filter(|profile| {
+            profile.platform == target.platform && profile.architecture == target.architecture
+        })
         .collect();
     if candidates.is_empty() {
         return Err(match try_profile {
-            Some(id) => format!("unknown profile: {id}"),
-            None => format!("no profile for {version}"),
+            Some(id) => format!("no {} profile with id: {id}", target.architecture),
+            None => format!("no {} profile for {version}", target.architecture),
         });
     }
     let known: Vec<_> = candidates
@@ -215,7 +280,8 @@ pub fn plan<'a>(
     let mut changes = Vec::new();
     for patch in profile.patches {
         changes.push(
-            change(data, segments, patch).map_err(|error| format!("{}: {error}", patch.name))?,
+            change(data, segments, patch, target.architecture)
+                .map_err(|error| format!("{}: {error}", patch.name))?,
         );
     }
     changes.sort_by_key(|change| change.location.offset);
@@ -230,6 +296,13 @@ pub fn plan<'a>(
         .any(|change| change.applied != already_patched)
     {
         return Err("partially patched input".into());
+    }
+    if target.platform == Platform::Macos
+        && let Some(signature) = crate::codesign::ad_hoc(data)?
+        && already_patched
+        && data[signature.range] != signature.data
+    {
+        return Err("patched mach-o code signature does not match its contents".into());
     }
     let build = profile.build(fingerprint);
     if let Some(build) = build
@@ -265,11 +338,37 @@ impl Plan<'_> {
             data[change.location.offset..change.location.offset + change.after.len()]
                 .copy_from_slice(&change.after);
         }
+        let signature = if self.profile.platform == Platform::Macos {
+            match crate::codesign::ad_hoc(data) {
+                Ok(signature) => signature.map(
+                    |crate::codesign::Signature {
+                         range,
+                         data: replacement,
+                     }| {
+                        let original = data[range.clone()].to_vec();
+                        data[range.clone()].copy_from_slice(&replacement);
+                        (range, original)
+                    },
+                ),
+                Err(error) => {
+                    for change in &self.changes {
+                        data[change.location.offset..change.location.offset + change.before.len()]
+                            .copy_from_slice(&change.before);
+                    }
+                    return Err(error);
+                }
+            }
+        } else {
+            None
+        };
         let fingerprint = hash(data);
         if self
             .build
             .is_some_and(|build| fingerprint != build.patched_sha256)
         {
+            if let Some((range, original)) = signature {
+                data[range].copy_from_slice(&original);
+            }
             for change in &self.changes {
                 data[change.location.offset..change.location.offset + change.before.len()]
                     .copy_from_slice(&change.before);

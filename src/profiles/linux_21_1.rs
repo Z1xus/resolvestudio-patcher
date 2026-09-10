@@ -5,6 +5,7 @@ use crate::{
 
 pub const PROFILE: Profile = Profile {
     platform: crate::binary::Platform::Linux,
+    architecture: crate::binary::Architecture::X86_64,
     id: "linux-21.1",
     versions: VersionRange {
         min: Version([21, 1, 0, 0]),

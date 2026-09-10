@@ -1,6 +1,9 @@
 pub mod binary;
+pub mod bundle;
+pub mod codesign;
 pub mod elf;
 pub mod engine;
+pub mod macho;
 pub mod pe;
 mod platform;
 pub mod profile;

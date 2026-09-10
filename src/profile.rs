@@ -1,9 +1,10 @@
-use crate::binary::Platform;
+use crate::binary::{Architecture, Platform};
 use crate::version::{Version, VersionRange};
 
 pub struct Profile {
     pub id: &'static str,
     pub platform: Platform,
+    pub architecture: Architecture,
     pub versions: VersionRange,
     pub builds: &'static [Build],
     pub patches: &'static [Patch],
@@ -42,6 +43,11 @@ pub enum Action {
     Jump {
         target: Anchor,
         verify: Option<Rel32>,
+    },
+    Arm64Branch {
+        target: Anchor,
+        link: bool,
+        verify: Option<usize>,
     },
 }
 

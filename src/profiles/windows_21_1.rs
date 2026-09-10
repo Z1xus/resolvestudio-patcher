@@ -7,6 +7,7 @@ use crate::{
 pub const PROFILE: Profile = Profile {
     id: "windows-21.1",
     platform: Platform::Windows,
+    architecture: crate::binary::Architecture::X86_64,
     versions: VersionRange {
         min: Version([21, 1, 0, 0]),
         max: Version([21, 1, u32::MAX, u32::MAX]),
