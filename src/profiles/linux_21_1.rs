@@ -8,14 +8,21 @@ pub const PROFILE: Profile = Profile {
     architecture: crate::binary::Architecture::X86_64,
     id: "linux-21.1",
     versions: VersionRange {
-        min: Version([21, 1, 0, 0]),
+        min: Version([21, 0, 4, 0]),
         max: Version([21, 1, u32::MAX, u32::MAX]),
     },
-    builds: &[Build {
-        version: Version([21, 1, 0, 14]),
-        original_sha256: "23d1bedf6f87fc26979cdaf1b4b5c3beef3bbcbefb34207a750450adef29fea2",
-        patched_sha256: "3861df318072d83a187dd8a6aaf9136c055137c611fa28e1915fa61ff1e3e8a3",
-    }],
+    builds: &[
+        Build {
+            version: Version([21, 0, 4, 5]),
+            original_sha256: "1092888fe6fc8e12339a9ea0fc38985089d486a8f9b97bc8ec922649e866fbbd",
+            patched_sha256: "8e068bc61b1f3e9ecd031f67463a01a17d08f99dc5fcf94ec18dee1ee62a465e",
+        },
+        Build {
+            version: Version([21, 1, 0, 14]),
+            original_sha256: "23d1bedf6f87fc26979cdaf1b4b5c3beef3bbcbefb34207a750450adef29fea2",
+            patched_sha256: "3861df318072d83a187dd8a6aaf9136c055137c611fa28e1915fa61ff1e3e8a3",
+        },
+    ],
     patches: &[Patch {
         name: "startup",
         anchor: Anchor {

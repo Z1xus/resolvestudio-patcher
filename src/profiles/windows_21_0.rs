@@ -5,37 +5,30 @@ use crate::{
 };
 
 pub const PROFILE: Profile = Profile {
-    id: "windows-21.1",
+    id: "windows-21.0",
     platform: Platform::Windows,
     architecture: crate::binary::Architecture::X86_64,
     versions: VersionRange {
-        min: Version([21, 0, 4, 0]),
-        max: Version([21, 1, u32::MAX, u32::MAX]),
+        min: Version([21, 0, 0, 0]),
+        max: Version([21, 0, 3, u32::MAX]),
     },
-    builds: &[
-        Build {
-            version: Version([21, 0, 4, 5]),
-            original_sha256: "5dd37102210dc1907dd196240c2cf47186a1cb2686cab0357754927b7e688d39",
-            patched_sha256: "ba4ec5e96adb7089d0611c1fad9e6c39198c4f81fb97487f310d836481077402",
-        },
-        Build {
-            version: Version([21, 1, 0, 14]),
-            original_sha256: "0a8f20c70851e629c1753ed537801d1df0b5162ad98a5ab399e4abc7b77df236",
-            patched_sha256: "b9676fae37c87f3df8ccf67dd65e2e82c8e22ebac10d4b19adc7981e8ba72c11",
-        },
-    ],
+    builds: &[Build {
+        version: Version([21, 0, 0, 48]),
+        original_sha256: "470f6a5ab8a5053a9489c88c5627ae922eab760d496d9fa84a694c784042bcb9",
+        patched_sha256: "6b3996090aa790800a74dbbef8136b099333de3021882c0bb972499aa64af04a",
+    }],
     patches: &[Patch {
         name: "startup",
         anchor: Anchor {
-            signature: "40 53 48 81 EC 80 00 00 00 ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? 4C 8D 05 ?? ?? ?? ?? 48 8D 15 ?? ?? ?? ?? 48 8D 8C 24 90 00 00 00 FF 15 ?? ?? ?? ?? 90",
-            offset: 9,
+            signature: "40 53 48 83 EC 50 ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? 4C 8D 05 ?? ?? ?? ?? 48 8D 15 ?? ?? ?? ?? 48 8D 4C 24 60 FF 15 ?? ?? ?? ?? 90",
+            offset: 6,
         },
-        expected: "E8 ?? ?? ?? ?? 84 C0 74 0B B0 01 48 81 C4 80 00 00 00 5B C3 C7 44 24 20 FF FF FF FF 45 33 C9",
+        expected: "E8 ?? ?? ?? ?? 84 C0 74 08 B0 01 48 83 C4 50 5B C3 C7 44 24 20 FF FF FF FF 45 33 C9",
         action: Action::Code {
             // initialize features and return, preserving the prologue and unwind data.
             bytes: &[
-                0xe8, 0, 0, 0, 0, 0x48, 0x8b, 0xc8, 0xe8, 0, 0, 0, 0, 0xb0, 0x01, 0x48, 0x81, 0xc4,
-                0x80, 0, 0, 0, 0x5b, 0xc3, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90,
+                0xe8, 0, 0, 0, 0, 0x48, 0x8b, 0xc8, 0xe8, 0, 0, 0, 0, 0xb0, 0x01, 0x48, 0x83, 0xc4,
+                0x50, 0x5b, 0xc3, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90,
             ],
             calls: &[
                 Call {

@@ -8,9 +8,9 @@ a patcher for davinci resolve studio
 
 | platform | tested versions | version range |
 | --- | --- | --- |
-| linux x86-64 | 21.1.0.0014 | 21.1.x |
-| windows x86-64 | 21.1.0.0014 | 21.1.x |
-| macos x86-64 and arm64 | 21.1.0.0014 | 21.1.x |
+| linux x86-64 | 18.0.0.0036, 18.6.6.0007, 19.0.0.0069, 19.1.4.0011, 20.0.0.0049, 20.3.3.0010, 21.0.0.0048, 21.0.4.0005, 21.1.0.0014 | 18.x, 19.x, 20.x, 21.0.x, 21.1.x |
+| windows x86-64 | 18.0.0.0036, 18.6.6.0007, 19.0.0.0069, 19.1.4.0011, 20.0.0.0049, 20.3.3.0010, 21.0.0.0048, 21.0.4.0005, 21.1.0.0014 | 18.0.x, 18.6.x, 19.0.x, 19.1.x, 20.x, 21.0.x, 21.1.x |
+| macos x86-64 and arm64 | 18.0.0.0036, 18.6.6.0007, 19.0.0.0069, 19.1.4.0011, 20.0.0.0049, 20.3.3.0010, 21.0.0.0048, 21.0.4.0005, 21.1.0.0014 | 18.x, 19.x, 20.x, 21.0.x, 21.1.x |
 
 other versions in the range may be supported but are untested.  
 (please open an issue with any working versions missing from the tested list so i can add them)
