@@ -59,13 +59,13 @@ resolvestudio-patcher check <path> --try-profile linux-21.1
 use the same option with `patch` to apply it  
 a signature match does not guarantee that resolve will work!!!
 
-## trust
+## for all the paranoid freaks
 
-the release workflow builds from source and includes sha256 checksums and the
-source commit and compiler version in `BUILD.txt`. you can build from source
-with `.github/build.sh` using the same commit and compiler to compare binaries
+every release is built from source by the [release workflow](.github/workflows/nightly-release.yml), so no binary is ever uploaded by hand. the builds are [reproducible](https://reproducible-builds.org/docs/definition/), which means you can run [`.github/build.sh`](.github/build.sh) on the same commit with the same compiler (both are written down in `BUILD.txt`) and compare your binary against `SHA256SUMS` from the [release](https://github.com/Z1xus/resolvestudio-patcher/releases/latest)
 
-published releases are immutable.
+published releases are also [immutable](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases), so i can't quietly swap an asset later
+
+and if you still do not trust resolvestudio-patcher, please proceed to [`manual/`](manual/). it has the same patches as plain perl and powershell commands (one file per profile) that you can read before you run them, generated from `src/profiles/` with `cargo run --example manual`
 
 ## build
 
