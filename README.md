@@ -22,6 +22,8 @@ you can download studio releases from [blackmagic design support](https://www.bl
 
 ## usage
 
+`<path>` is the resolve executable, its install folder or `.app` bundle.
+
 first you might want to run a check to verify signatures:
 
 ```sh
@@ -40,7 +42,7 @@ to undo the patch, run:
 resolvestudio-patcher restore <path>
 ```
 
-(backups are saved in `<path>.backups/`)
+(backups are saved in `<executable>.backups/`)
 
 to remove backups:
 

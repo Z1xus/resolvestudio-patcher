@@ -33,8 +33,8 @@ usage:
 
 --verbose, -v: show hashes, offsets and bytes
 --try-profile <id>: try a profile outside its version range (check or patch)
-macos: <path> can also be an .app bundle
-backups: <path>.backups/ (beside the .app for bundled executables)";
+<path>: the resolve executable, its install folder or .app bundle
+backups: <executable>.backups/ (beside the .app for bundled executables)";
 
 fn confirm_cleanup(bytes: u64) -> Result<bool, String> {
     let mut size = bytes as f64;

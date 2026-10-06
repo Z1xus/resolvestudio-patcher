@@ -5,9 +5,24 @@ use std::{
 };
 
 pub fn executable(path: &Path) -> Result<PathBuf, String> {
-    if path.extension().is_none_or(|extension| extension != "app") || !path.is_dir() {
+    if !path.is_dir() {
         return Ok(path.to_path_buf());
     }
+    if path.extension().is_some_and(|extension| extension == "app") {
+        return app_executable(path);
+    }
+    let app = path.join("DaVinci Resolve.app");
+    if app.is_dir() {
+        return app_executable(&app);
+    }
+    ["bin/resolve", "Resolve.exe"]
+        .iter()
+        .map(|name| path.join(name))
+        .find(|executable| executable.is_file())
+        .ok_or_else(|| "resolve executable not found in folder".into())
+}
+
+fn app_executable(path: &Path) -> Result<PathBuf, String> {
     let mut data = Vec::new();
     File::open(path.join("Contents/Info.plist"))
         .and_then(|file| file.take(1024 * 1024 + 1).read_to_end(&mut data))
