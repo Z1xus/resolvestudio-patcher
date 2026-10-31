@@ -71,4 +71,5 @@ pub struct Patch {
 pub struct Call {
     pub offset: usize,
     pub target: Anchor,
+    pub follow: bool,
 }

@@ -102,7 +102,8 @@ fn change(
     patch: &Patch,
     architecture: Architecture,
 ) -> Result<Change, String> {
-    let anchor = locate(data, segments, patch.anchor.signature)?;
+    let anchor = locate(data, segments, patch.anchor.signature)
+        .map_err(|error| format!("source anchor: {error}"))?;
     let expected = Signature::parse(patch.expected)?;
     let location = anchor.at(patch.anchor.offset, expected.width())?;
     if architecture == Architecture::Arm64
@@ -127,13 +128,38 @@ fn change(
                     return Err("invalid call relocation".into());
                 }
                 end = offset + 5;
-                let target =
-                    locate(data, segments, call.target.signature)?.at(call.target.offset, 1)?;
+                let target = locate(data, segments, call.target.signature)
+                    .map_err(|error| format!("call target at +{offset:#x}: {error}"))?
+                    .at(call.target.offset, if call.follow { 5 } else { 1 })?;
+                let address = if call.follow {
+                    if data[target.offset] != 0xe8 {
+                        return Err("call reference is not an x86 rel32 call".into());
+                    }
+                    let displacement = i32::from_le_bytes(
+                        data[target.offset + 1..target.offset + 5]
+                            .try_into()
+                            .unwrap(),
+                    );
+                    let address = target
+                        .address
+                        .checked_add(5)
+                        .and_then(|next| next.checked_add_signed(displacement as i64))
+                        .ok_or("call reference address overflow")?;
+                    if !segments.iter().any(|segment| {
+                        address >= segment.address
+                            && address - segment.address < segment.size as u64
+                    }) {
+                        return Err("call reference target outside executable segments".into());
+                    }
+                    address
+                } else {
+                    target.address
+                };
                 let next = location
                     .address
                     .checked_add(end as u64)
                     .ok_or("address overflow")?;
-                let displacement = i32::try_from(target.address as i128 - next as i128)
+                let displacement = i32::try_from(address as i128 - next as i128)
                     .map_err(|_| "call target out of range")?;
                 bytes[offset + 1..end].copy_from_slice(&displacement.to_le_bytes());
             }
@@ -143,7 +169,9 @@ fn change(
             if architecture != Architecture::X86_64 {
                 return Err("x86 jump on a different architecture".into());
             }
-            let target = locate(data, segments, target.signature)?.at(target.offset, 1)?;
+            let target = locate(data, segments, target.signature)
+                .map_err(|error| format!("jump target: {error}"))?
+                .at(target.offset, 1)?;
             if let Some(reference) = verify {
                 let (width, displacement) = match reference {
                     crate::profile::Verify::Rel32(reference) => {
@@ -181,7 +209,9 @@ fn change(
             if architecture != Architecture::Arm64 {
                 return Err("arm64 branch on a different architecture".into());
             }
-            let target = locate(data, segments, target.signature)?.at(target.offset, 4)?;
+            let target = locate(data, segments, target.signature)
+                .map_err(|error| format!("branch target: {error}"))?
+                .at(target.offset, 4)?;
             if location.address % 4 != 0 || target.address % 4 != 0 {
                 return Err("unaligned arm64 branch".into());
             }
@@ -291,7 +321,7 @@ pub fn plan<'a>(
     for patch in profile.patches {
         changes.push(
             change(data, segments, patch, target.architecture)
-                .map_err(|error| format!("{}: {error}", patch.name))?,
+                .map_err(|error| format!("{}: {}: {error}", profile.id, patch.name))?,
         );
     }
     changes.sort_by_key(|change| change.location.offset);

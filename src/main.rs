@@ -178,7 +178,8 @@ fn run() -> Result<(), String> {
             profiles::ALL,
             try_profile.as_deref(),
             slice.target,
-        )?;
+        )
+        .map_err(|error| format!("{version} ({}): {error}", slice.target.architecture))?;
         if plan.build.is_some() {
             log::success(format!(
                 "known build: {version} ({})",

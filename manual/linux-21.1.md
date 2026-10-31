@@ -15,10 +15,10 @@ sudo perl -e '
 open F, "+<:raw", $ARGV[0] or die "$!\n";
 $d = $o = do { local $/; <F> };
 sub at { my @m; push @m, $-[0] while $d =~ /(?=$_[0])/g; @m == 1 ? $m[0] : die "signature not found\n" }
-$p = at(qr/\x53\x48\x83\xEC\x40.....\x48\x89\xC7\xE8....\x84\xC0\x75\x19\xE8....\x48\x89\xC7\x31\xF6\x31\xD2\xE8....\x85\xC0\x0F\x84..../s) + 5;
+$p = at(qr/.....\x48\x89\xC7\xE8....\x84\xC0\x75\x19\xE8....\x48\x89\xC7\x31\xF6\x31\xD2\xE8....\x85\xC0\x0F\x84..../s) + 0;
 substr($d, $p, 5) =~ /\A\xE8....\z/s or die "unexpected bytes\n";
 $c = pack("H*", "e900000000");
-substr($c, 1, 4) = pack("l<", at(qr/\xBF\x01\x00\x00\x00\xE8....\xE8....\x48\x89\xC7\xE8....\xB0\x01\x48\x83\xC4\x40\x5B\xC3/s) + 0 - $p - 5);
+substr($c, 1, 4) = pack("l<", at(qr/\xBF\x01\x00\x00\x00\xE8....\xE8....\x48\x89\xC7\xE8....\xB0\x01/s) + 0 - $p - 5);
 substr($o, $p, 5) = $c;
 seek F, 0, 0; print F $o;
 ' /opt/resolve/bin/resolve

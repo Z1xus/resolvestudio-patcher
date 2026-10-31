@@ -24,17 +24,17 @@ fn width(signature: &str) -> usize {
     signature.split_whitespace().count()
 }
 
-fn code(action: &Action) -> (Vec<u8>, Vec<(usize, &Anchor)>) {
+fn code(action: &Action) -> (Vec<u8>, Vec<(usize, &Anchor, bool)>) {
     match action {
         Action::Bytes(bytes) => (bytes.to_vec(), Vec::new()),
         Action::Code { bytes, calls } => (
             bytes.to_vec(),
             calls
                 .iter()
-                .map(|call| (call.offset, &call.target))
+                .map(|call| (call.offset, &call.target, call.follow))
                 .collect(),
         ),
-        Action::Jump { target, .. } => (vec![0xe9, 0, 0, 0, 0], vec![(0, target)]),
+        Action::Jump { target, .. } => (vec![0xe9, 0, 0, 0, 0], vec![(0, target, false)]),
         Action::Arm64Branch { .. } => unreachable!(),
     }
 }
@@ -66,11 +66,17 @@ sub at { my @m; push @m, $-[0] while $d =~ /(?=$_[0])/g; @m == 1 ? $m[0] : die \
         let (bytes, calls) = code(&patch.action);
         let hex: String = bytes.iter().map(|byte| format!("{byte:02x}")).collect();
         script += &format!("$c = pack(\"H*\", \"{hex}\");\n");
-        for (offset, target) in calls {
+        for (offset, target, follow) in calls {
+            let target = if follow {
+                script += &format!("$t = {};\n", at(target));
+                script += "substr($d, $t, 1) eq pack(\"C\", 0xe8) or die \"invalid call reference\\n\";\n$t += 5 + unpack(\"l<\", substr($d, $t + 1, 4));\n";
+                "$t".into()
+            } else {
+                at(target)
+            };
             script += &format!(
-                "substr($c, {}, 4) = pack(\"l<\", {} - $p - {});\n",
+                "substr($c, {}, 4) = pack(\"l<\", {target} - $p - {});\n",
                 offset + 1,
-                at(target),
                 offset + 5
             );
         }
@@ -103,10 +109,16 @@ function At($re) {{
             regex(patch.expected),
             hex.join(",")
         );
-        for (offset, target) in calls {
+        for (offset, target, follow) in calls {
+            let target = if follow {
+                script += &format!("$t = {}\n", at(target));
+                script += "if ($b[$t] -ne 0xe8) { throw \"invalid call reference\" }\n$t += 5 + [BitConverter]::ToInt32($b, $t + 1)\n";
+                "$t".into()
+            } else {
+                at(target)
+            };
             script += &format!(
-                "[BitConverter]::GetBytes([int]({} - $p - {})).CopyTo($c, {})\n",
-                at(target),
+                "[BitConverter]::GetBytes([int]({target} - $p - {})).CopyTo($c, {})\n",
                 offset + 5,
                 offset + 1
             );
