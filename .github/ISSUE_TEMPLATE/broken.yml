@@ -1,0 +1,47 @@
+name: problem
+description: the patch fails, resolve does not work after it, or something else is wrong
+title: "problem: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        if your version is new, run `check` first. if it fails, try the profile for the closest version, for example `check <path> --try-profile linux-21.1`
+        the [manual](https://github.com/Z1xus/resolvestudio-patcher/tree/main/manual) patches do the same thing as the patcher, so they fail on the same builds
+  - type: dropdown
+    id: platform
+    attributes:
+      label: platform
+      options: [linux x86-64, windows x86-64, macos x86-64, macos arm64]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: resolve version
+      description: full build number from about davinci resolve
+      placeholder: 21.1.2.0003
+    validations:
+      required: true
+  - type: input
+    id: patcher
+    attributes:
+      label: patcher version
+      description: output of `resolvestudio-patcher --version`
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: output
+      description: full output of `check` and `patch`, with `--try-profile` too if you used it
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: what happened
+      description: what you expected and what happened instead
+    validations:
+      required: true

@@ -1,0 +1,37 @@
+name: working version
+description: a resolve version that works but is missing from the tested list
+title: "works: "
+body:
+  - type: markdown
+    attributes:
+      value: use this when the patch works on a version that is not in the tested list yet
+  - type: dropdown
+    id: platform
+    attributes:
+      label: platform
+      options: [linux x86-64, windows x86-64, macos x86-64, macos arm64]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: resolve version
+      description: full build number from about davinci resolve
+      placeholder: 21.1.2.0003
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: patch output
+      description: output of `resolvestudio-patcher patch <path>`
+      render: text
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: confirm
+      options:
+        - label: resolve starts as studio after the patch
+          required: true
