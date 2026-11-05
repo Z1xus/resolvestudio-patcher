@@ -164,6 +164,9 @@ fn run() -> Result<(), String> {
         };
         let version = engine::identify(bytes, &slice_hash, profiles::ALL).map_err(|e| {
             log::unknown(&e);
+            if e == "free edition detected" {
+                log::warning("YOU ARE PROBABLY TRYING TO PATCH THE FREE EDITION. PLEASE INSTALL STUDIO FIRST (I CANT UNLOCK WHAT ISNT THERE)");
+            }
             format!("cannot identify {} build", slice.target.architecture)
         })?;
         if image_version.is_some_and(|previous| previous != version) {
