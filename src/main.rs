@@ -87,7 +87,7 @@ fn run() -> Result<(), String> {
     if args.len() == 1 && args[0] == "--version" {
         log::info(format!(
             "resolvestudio-patcher {}",
-            env!("CARGO_PKG_VERSION")
+            option_env!("PATCHER_COMMIT").unwrap_or("dev")
         ));
         return Ok(());
     }

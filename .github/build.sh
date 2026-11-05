@@ -30,6 +30,10 @@ export CARGO_INCREMENTAL=0
 export TZ=UTC
 export LC_ALL=C
 
+if commit="$(git rev-parse HEAD 2>/dev/null)"; then
+  export PATCHER_COMMIT="$commit"
+fi
+
 cargo build --release --locked --target "$target"
 binary="target/$target/release/resolvestudio-patcher"
 if [[ "$target" == x86_64-pc-windows-msvc ]]; then
