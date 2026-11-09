@@ -123,10 +123,6 @@ pub fn code_segments(data: &[u8]) -> Result<Vec<Segment>, String> {
     Ok(segments)
 }
 
-fn utf16(text: &str) -> Vec<u8> {
-    text.encode_utf16().flat_map(u16::to_le_bytes).collect()
-}
-
 pub fn version(data: &[u8]) -> Result<Version, String> {
     let image = Image::read(data)?;
     let (rva, size) = image.resources;
@@ -169,22 +165,16 @@ pub fn version(data: &[u8]) -> Result<Version, String> {
         let value = data
             .get(offset..offset + length)
             .ok_or("truncated version resource")?;
-        let key = utf16("VS_VERSION_INFO\0");
+        let key: Vec<_> = "VS_VERSION_INFO\0"
+            .encode_utf16()
+            .flat_map(u16::to_le_bytes)
+            .collect();
         if value.get(6..6 + key.len()) != Some(key.as_slice())
             || word(value, 2)? != 52
             || dword(value, 40)? != 0xfeef04bd
             || dword(value, 44)? != 0x10000
         {
             return Err("invalid pe version info".into());
-        }
-        let name = utf16("ProductName\0");
-        if let Some(at) = value.windows(name.len()).position(|bytes| bytes == name) {
-            // string values are 32-bit aligned
-            let at = (at + name.len() + 3) & !3;
-            let free = utf16("DaVinci Resolve\0");
-            if value.get(at..at + free.len()) == Some(free.as_slice()) {
-                return Err("free edition detected".into());
-            }
         }
         let high = dword(value, 48)?;
         let low = dword(value, 52)?;
@@ -194,11 +184,12 @@ pub fn version(data: &[u8]) -> Result<Version, String> {
         }
         found = Some(version);
     }
+    // free builds embed the name only inside longer strings
     if !data
-        .windows(23)
-        .any(|bytes| bytes == b"DaVinci Resolve Studio\0")
+        .windows(24)
+        .any(|bytes| bytes == b"\0DaVinci Resolve Studio\0")
     {
-        return Err("studio marker not found".into());
+        return Err("free edition detected".into());
     }
     found.ok_or_else(|| "pe version resource not found".into())
 }

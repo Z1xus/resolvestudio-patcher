@@ -66,5 +66,11 @@ pub fn detect(data: &[u8]) -> Result<Version, String> {
         }
         found = Some(version);
     }
-    found.ok_or_else(|| "studio version not found".into())
+    found.ok_or_else(|| {
+        if data.windows(6).any(|bytes| bytes == b"_lite\0") {
+            "free edition detected".into()
+        } else {
+            "studio version not found".into()
+        }
+    })
 }
