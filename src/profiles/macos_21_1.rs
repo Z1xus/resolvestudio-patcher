@@ -6,7 +6,7 @@ use crate::{
 
 const VERSIONS: VersionRange = VersionRange {
     min: Version([21, 0, 4, 0]),
-    max: Version([21, 1, u32::MAX, u32::MAX]),
+    max: Version([21, 2, u32::MAX, u32::MAX]),
 };
 
 pub const X86_64: Profile = Profile {

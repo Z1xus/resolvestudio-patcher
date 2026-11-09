@@ -10,7 +10,7 @@ pub const PROFILE: Profile = Profile {
     architecture: crate::binary::Architecture::X86_64,
     versions: VersionRange {
         min: Version([21, 0, 4, 0]),
-        max: Version([21, 1, u32::MAX, u32::MAX]),
+        max: Version([21, 2, u32::MAX, u32::MAX]),
     },
     builds: &[
         Build {
