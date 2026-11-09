@@ -25,6 +25,11 @@ pub const X86_64: Profile = Profile {
             original_sha256: "a8184b4121678b234fd09104a656eae76d0b991de2233c030d3661d58cc14a6b",
             patched_sha256: "788d787c1b0942d83ec231b11cbeaabc338c640bd5a720d28a1eccf8a7b3963e",
         },
+        Build {
+            version: Version([21, 2, 0, 6]),
+            original_sha256: "0dce18d978a877d4c40aa894d54f9e5d6d8db78950ab60c9b27b41dfa8859689",
+            patched_sha256: "2719cd72b3328edaed762a772382a8e03e2cacb1b78827b3fb93d8e5d471d705",
+        },
     ],
     patches: &[Patch {
         name: "startup",
@@ -61,6 +66,11 @@ pub const ARM64: Profile = Profile {
             version: Version([21, 1, 0, 14]),
             original_sha256: "77fe93852ccd6706f20de8061f1b4cd04f17a5b761c7517b27df82244e5a72e4",
             patched_sha256: "85ae7c81ed4cedcc171e0bd403bde0aaf9308981ea5ea08b79db58184607000e",
+        },
+        Build {
+            version: Version([21, 2, 0, 6]),
+            original_sha256: "95ad56280c0a5c2498c79e99e7d287713e014a663a90a3e96dd353967d1999c3",
+            patched_sha256: "7dea5a7fe0fa3725b80fd1efdd61a0cc6bdf67fc5c125002bf02a64d56181e39",
         },
     ],
     patches: &[Patch {

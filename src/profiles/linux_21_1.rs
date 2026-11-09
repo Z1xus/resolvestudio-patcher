@@ -22,6 +22,11 @@ pub const PROFILE: Profile = Profile {
             original_sha256: "23d1bedf6f87fc26979cdaf1b4b5c3beef3bbcbefb34207a750450adef29fea2",
             patched_sha256: "3861df318072d83a187dd8a6aaf9136c055137c611fa28e1915fa61ff1e3e8a3",
         },
+        Build {
+            version: Version([21, 2, 0, 6]),
+            original_sha256: "e38b3f27b8b15c1cd844753e9126741dd5dfdb2c56dade4cc4d5b573963cdc56",
+            patched_sha256: "c49b889ef90ecb38bbeba846d41191f9fc685046683f59b8096fbde07e82a278",
+        },
     ],
     patches: &[Patch {
         name: "startup",

@@ -30,6 +30,7 @@ check the result with `sha256sum /opt/resolve/bin/resolve`:
 | --- | --- | --- |
 | 21.0.4.5 | `1092888fe6fc8e12339a9ea0fc38985089d486a8f9b97bc8ec922649e866fbbd` | `8e068bc61b1f3e9ecd031f67463a01a17d08f99dc5fcf94ec18dee1ee62a465e` |
 | 21.1.0.14 | `23d1bedf6f87fc26979cdaf1b4b5c3beef3bbcbefb34207a750450adef29fea2` | `3861df318072d83a187dd8a6aaf9136c055137c611fa28e1915fa61ff1e3e8a3` |
+| 21.2.0.6 | `e38b3f27b8b15c1cd844753e9126741dd5dfdb2c56dade4cc4d5b573963cdc56` | `c49b889ef90ecb38bbeba846d41191f9fc685046683f59b8096fbde07e82a278` |
 
 restore:
 
