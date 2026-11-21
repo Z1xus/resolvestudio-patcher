@@ -27,6 +27,7 @@ fn width(signature: &str) -> usize {
 fn code(action: &Action) -> (Vec<u8>, Vec<(usize, &Anchor, bool)>) {
     match action {
         Action::Bytes(bytes) => (bytes.to_vec(), Vec::new()),
+        Action::AllBytes(_) => unreachable!(),
         Action::Code { bytes, calls } => (
             bytes.to_vec(),
             calls
@@ -46,10 +47,21 @@ fn perl(profile: &Profile, path: &str) -> String {
 open F, \"+<:raw\", $ARGV[0] or die \"$!\\n\";
 $d = $o = do { local $/; <F> };
 sub at { my @m; push @m, $-[0] while $d =~ /(?=$_[0])/g; @m == 1 ? $m[0] : die \"signature not found\\n\" }
+sub all { my @m; push @m, $-[0] while $d =~ /(?=$_[0])/g; @m or die \"signature not found\\n\"; @m }
 ",
     );
     for patch in profile.patches {
         let width = width(patch.expected);
+        if let Action::AllBytes(bytes) = &patch.action {
+            let hex: String = bytes.iter().map(|byte| format!("{byte:02x}")).collect();
+            script += &format!(
+                "for $p (all(qr/{}/s)) {{ $p += {};\nsubstr($d, $p, {width}) =~ /\\A{}\\z/s or die \"unexpected bytes\\n\";\nsubstr($o, $p, {width}) = pack(\"H*\", \"{hex}\"); }}\n",
+                regex(patch.anchor.signature),
+                patch.anchor.offset,
+                regex(patch.expected)
+            );
+            continue;
+        }
         script += &format!(
             "$p = {};\nsubstr($d, $p, {width}) =~ /\\A{}\\z/s or die \"unexpected bytes\\n\";\n",
             at(&patch.anchor),
@@ -100,6 +112,18 @@ function At($re) {{
 "
     );
     for patch in profile.patches {
+        if let Action::AllBytes(bytes) = &patch.action {
+            let hex: Vec<_> = bytes.iter().map(|byte| format!("0x{byte:02x}")).collect();
+            script += &format!(
+                "$m = [regex]::Matches($s, \"(?s)(?={})\")\nif ($m.Count -lt 1) {{ throw \"signature not found\" }}\nforeach ($x in $m) {{\n$p = $x.Index + {}\nif ($s.Substring($p, {}) -cnotmatch '(?s)\\A{}\\z') {{ throw \"unexpected bytes\" }}\n$c = [byte[]]({})\n$c.CopyTo($b, $p)\n}}\n",
+                regex(patch.anchor.signature),
+                patch.anchor.offset,
+                width(patch.expected),
+                regex(patch.expected),
+                hex.join(",")
+            );
+            continue;
+        }
         let (bytes, calls) = code(&patch.action);
         let hex: Vec<_> = bytes.iter().map(|byte| format!("0x{byte:02x}")).collect();
         script += &format!(

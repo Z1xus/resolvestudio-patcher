@@ -15,6 +15,7 @@ sudo perl -e '
 open F, "+<:raw", $ARGV[0] or die "$!\n";
 $d = $o = do { local $/; <F> };
 sub at { my @m; push @m, $-[0] while $d =~ /(?=$_[0])/g; @m == 1 ? $m[0] : die "signature not found\n" }
+sub all { my @m; push @m, $-[0] while $d =~ /(?=$_[0])/g; @m or die "signature not found\n"; @m }
 $p = at(qr/\x53\x48\x83\xEC\x40.....\x48\x89\xC7\xE8....\x84\xC0\x75.\xE8....\x48\x89\xC7\x31\xF6\x31\xD2\xE8....\x85\xC0\x74./s) + 5;
 substr($d, $p, 5) =~ /\A\xE8....\z/s or die "unexpected bytes\n";
 $c = pack("H*", "e900000000");

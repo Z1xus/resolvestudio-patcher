@@ -46,6 +46,7 @@ pub enum Verify {
 
 pub enum Action {
     Bytes(&'static [u8]),
+    AllBytes(&'static [u8]),
     Code {
         bytes: &'static [u8],
         calls: &'static [Call],

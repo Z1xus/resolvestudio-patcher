@@ -39,8 +39,16 @@ impl Location {
 }
 
 pub fn locate(data: &[u8], segments: &[Segment], pattern: &str) -> Result<Location, String> {
+    let mut found = locate_all(data, segments, pattern)?;
+    if found.len() > 1 {
+        return Err("ambiguous signature".into());
+    }
+    found.pop().ok_or_else(|| "signature not found".into())
+}
+
+fn locate_all(data: &[u8], segments: &[Segment], pattern: &str) -> Result<Vec<Location>, String> {
     let pattern = Signature::parse(pattern)?;
-    let mut found = None;
+    let mut found = Vec::new();
     for segment in segments {
         let end = segment
             .offset
@@ -50,10 +58,7 @@ pub fn locate(data: &[u8], segments: &[Segment], pattern: &str) -> Result<Locati
             .get(segment.offset..end)
             .ok_or("segment outside file")?;
         for offset in pattern.find(code) {
-            if found.is_some() {
-                return Err("ambiguous signature".into());
-            }
-            found = Some(Location {
+            found.push(Location {
                 offset: segment.offset + offset,
                 address: segment
                     .address
@@ -63,7 +68,10 @@ pub fn locate(data: &[u8], segments: &[Segment], pattern: &str) -> Result<Locati
             });
         }
     }
-    found.ok_or_else(|| "signature not found".into())
+    if found.is_empty() {
+        return Err("signature not found".into());
+    }
+    Ok(found)
 }
 
 pub fn identify(data: &[u8], fingerprint: &str, profiles: &[Profile]) -> Result<Version, String> {
@@ -113,6 +121,7 @@ fn change(
     }
     let after = match &patch.action {
         Action::Bytes(bytes) => bytes.to_vec(),
+        Action::AllBytes(_) => return Err("all-bytes patches apply at every match".into()),
         Action::Code { bytes, calls } => {
             if architecture != Architecture::X86_64 {
                 return Err("x86 call relocation on a different architecture".into());
@@ -274,6 +283,49 @@ fn change(
     })
 }
 
+fn all_bytes(
+    data: &[u8],
+    segments: &[Segment],
+    patch: &Patch,
+    architecture: Architecture,
+    bytes: &[u8],
+) -> Result<Vec<Change>, String> {
+    let expected = Signature::parse(patch.expected)?;
+    if bytes.len() != expected.width() {
+        return Err("replacement length differs from expected bytes".into());
+    }
+    let anchors = locate_all(data, segments, patch.anchor.signature)
+        .map_err(|error| format!("source anchor: {error}"))?;
+    let mut changes = Vec::new();
+    for anchor in anchors {
+        let location = anchor.at(patch.anchor.offset, expected.width())?;
+        if architecture == Architecture::Arm64
+            && (!location.address.is_multiple_of(4) || !expected.width().is_multiple_of(4))
+        {
+            return Err("arm64 patches must contain complete aligned instructions".into());
+        }
+        let before = data[location.offset..location.offset + bytes.len()].to_vec();
+        let original = expected.matches(&before);
+        let applied = before == bytes;
+        if original == applied {
+            return Err(if original {
+                "original and patched states overlap"
+            } else {
+                "unexpected bytes"
+            }
+            .into());
+        }
+        changes.push(Change {
+            name: patch.name,
+            location,
+            before,
+            after: bytes.to_vec(),
+            applied,
+        });
+    }
+    Ok(changes)
+}
+
 pub fn plan<'a>(
     data: &[u8],
     segments: &[Segment],
@@ -319,10 +371,12 @@ pub fn plan<'a>(
     }
     let mut changes = Vec::new();
     for patch in profile.patches {
-        changes.push(
-            change(data, segments, patch, target.architecture)
-                .map_err(|error| format!("{}: {}: {error}", profile.id, patch.name))?,
-        );
+        let produced = match &patch.action {
+            Action::AllBytes(bytes) => all_bytes(data, segments, patch, target.architecture, bytes),
+            _ => change(data, segments, patch, target.architecture).map(|change| vec![change]),
+        };
+        changes
+            .extend(produced.map_err(|error| format!("{}: {}: {error}", profile.id, patch.name))?);
     }
     changes.sort_by_key(|change| change.location.offset);
     for pair in changes.windows(2) {
