@@ -14,7 +14,7 @@ pub const PROFILE: Profile = Profile {
     builds: &[Build {
         version: Version([21, 2, 0, 6]),
         original_sha256: "e38b3f27b8b15c1cd844753e9126741dd5dfdb2c56dade4cc4d5b573963cdc56",
-        patched_sha256: "be80b7d74a71fa42ae5f1b8a15fa3b5fc1ad9ac390aef912c5ba5040812f45f7",
+        patched_sha256: "fa4d58d03c2e66cf3e599691bedc04a89fd2ccead248bd2ef13ff402307671c6",
     }],
     patches: &[
         Patch {
@@ -34,6 +34,15 @@ pub const PROFILE: Profile = Profile {
                     instruction_end: 42,
                 })),
             },
+        },
+        Patch {
+            name: "write-guard",
+            anchor: Anchor {
+                signature: "48 8B 7C 24 20 BE 02 00 00 00 BA 08 00 00 00 E8 ?? ?? ?? ?? 41 09 EE ?? ?? 48 89 DF E8",
+                offset: 23,
+            },
+            expected: "75 60",
+            action: Action::Bytes(&[0xEB, 0x60]),
         },
         Patch {
             name: "render-guard",
