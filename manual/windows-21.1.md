@@ -26,6 +26,10 @@ if ($b[$t] -ne 0xe8) { throw "invalid call reference" }
 $t += 5 + [BitConverter]::ToInt32($b, $t + 1)
 [BitConverter]::GetBytes([int]($t - $p - 13)).CopyTo($c, 9)
 $c.CopyTo($b, $p)
+$p = (At '\x85\xFF..\x85\xDB\x75.\x49\x8B\xCE\xE8....\x48\x8B\xF0') + 2
+if ($s.Substring($p, 1) -cnotmatch '(?s)\A\x75\z') { throw "unexpected bytes" }
+$c = [byte[]](0xeb)
+$c.CopyTo($b, $p)
 Copy-Item $f "$f.bak"
 [IO.File]::WriteAllBytes($f, $b)
 }
@@ -35,8 +39,7 @@ check the result with `Get-FileHash "C:\Program Files\Blackmagic Design\DaVinci 
 
 | version | original | patched |
 | --- | --- | --- |
-| 21.0.4.5 | `5dd37102210dc1907dd196240c2cf47186a1cb2686cab0357754927b7e688d39` | `ba4ec5e96adb7089d0611c1fad9e6c39198c4f81fb97487f310d836481077402` |
-| 21.1.0.14 | `0a8f20c70851e629c1753ed537801d1df0b5162ad98a5ab399e4abc7b77df236` | `b9676fae37c87f3df8ccf67dd65e2e82c8e22ebac10d4b19adc7981e8ba72c11` |
+| 21.0.4.5 | `5dd37102210dc1907dd196240c2cf47186a1cb2686cab0357754927b7e688d39` | `92edb6ca70b990b5dba3a7a1efa57d8548df94b7252d7d3cb5f718c6eead6560` |
 | 21.2.0.6 | `58ea8835bc2f3a8b5266978178f0a3833474ad3095e4e9c1b319d9a7e50ae150` | `40dd70d48c07eb5bd378b8e3a99bc2683589f985837881da38a4e9a6f2cd7033` |
 
 restore:

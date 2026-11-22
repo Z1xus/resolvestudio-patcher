@@ -19,6 +19,10 @@ if ($s.Substring($p, 5) -cnotmatch '(?s)\A\xE8....\z') { throw "unexpected bytes
 $c = [byte[]](0xe9,0x00,0x00,0x00,0x00)
 [BitConverter]::GetBytes([int]((At '\xE8....\x48\x8B\xC8\xE8....\xB3\x01\x48\x8D\x4C\x24.\xFF\x15....') + 0 - $p - 5)).CopyTo($c, 1)
 $c.CopyTo($b, $p)
+$p = (At '\x85\xFF..\x85\xDB\x75.\x49\x8B\xCE\xE8....\x48\x8B\xF0') + 2
+if ($s.Substring($p, 1) -cnotmatch '(?s)\A\x75\z') { throw "unexpected bytes" }
+$c = [byte[]](0xeb)
+$c.CopyTo($b, $p)
 Copy-Item $f "$f.bak"
 [IO.File]::WriteAllBytes($f, $b)
 }
@@ -28,7 +32,6 @@ check the result with `Get-FileHash "C:\Program Files\Blackmagic Design\DaVinci 
 
 | version | original | patched |
 | --- | --- | --- |
-| 18.6.6.7 | `406c9e3b65ae428d8f2598bc64bcfb4c3adb4555b71fc3c0a1e5f4fb2568faba` | `e60da414068b9c0a3d0cc6cae30efc0c56f81dc67d54d9ca436f613f9d7113cd` |
 
 restore:
 

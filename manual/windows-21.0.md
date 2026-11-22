@@ -20,6 +20,10 @@ $c = [byte[]](0xe8,0x00,0x00,0x00,0x00,0x48,0x8b,0xc8,0xe8,0x00,0x00,0x00,0x00,0
 [BitConverter]::GetBytes([int]((At '\x48\x89\x5C\x24\x10\x57\x48\x83\xEC\x30\xE8....\x48\x8B\xD8\x48\x83\x38\x00\x75.\x48\x8D\x78\x08\x48\x89\x7C\x24\x20\xC6\x44\x24\x28\x00\x48\x8B\xCF\xE8....\x85\xC0\x75.\x81\x7F\x4C\xFF\xFF\xFF\x7F\x74.\xC6\x44\x24\x28\x01\x48\x83\x3B\x00\x75.\xB9\xB0\x08\x00\x00') + 0 - $p - 5)).CopyTo($c, 1)
 [BitConverter]::GetBytes([int]((At '\x48\x8D\x41\x30\xB9\x00\x04\x00\x00\x0F\x1F\x80\x00\x00\x00\x00\xC6\x80\x00\x04\x00\x00\x01\xC6\x00\x01\x48\x8D\x40\x01\x48\x83\xE9\x01\x75\xEC\xC3') + 0 - $p - 13)).CopyTo($c, 9)
 $c.CopyTo($b, $p)
+$p = (At '\x85\xFF..\x85\xDB\x75.\x49\x8B\xCE\xE8....\x48\x8B\xF0') + 2
+if ($s.Substring($p, 1) -cnotmatch '(?s)\A\x75\z') { throw "unexpected bytes" }
+$c = [byte[]](0xeb)
+$c.CopyTo($b, $p)
 Copy-Item $f "$f.bak"
 [IO.File]::WriteAllBytes($f, $b)
 }
@@ -29,7 +33,7 @@ check the result with `Get-FileHash "C:\Program Files\Blackmagic Design\DaVinci 
 
 | version | original | patched |
 | --- | --- | --- |
-| 21.0.0.48 | `470f6a5ab8a5053a9489c88c5627ae922eab760d496d9fa84a694c784042bcb9` | `6b3996090aa790800a74dbbef8136b099333de3021882c0bb972499aa64af04a` |
+| 21.0.0.48 | `470f6a5ab8a5053a9489c88c5627ae922eab760d496d9fa84a694c784042bcb9` | `7e28e5c5455b5c714395849564ead3d7072e70af8d84ab48df44026e0d076d6b` |
 
 restore:
 

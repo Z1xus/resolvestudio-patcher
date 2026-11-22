@@ -15,25 +15,36 @@ pub const PROFILE: Profile = Profile {
     builds: &[Build {
         version: Version([18, 0, 0, 36]),
         original_sha256: "a91e06a1c2f5e7d4d7ce27301c8350f9957dfe985539cec613dd54d9c386bd7d",
-        patched_sha256: "dab6336880fcb771b085a3d1aa1eb9cc731d2624f25f2032345c2fabea7ddea9",
+        patched_sha256: "3fcd0fa2ed9e4f56e2e0fecff75ae1db28d966ccba29334f9a797d396f79fab8",
     }],
-    patches: &[Patch {
-        name: "startup",
-        anchor: Anchor {
-            // jump only after the local QString objects have been initialized.
-            signature: "48 8D 4D 07 FF 15 ?? ?? ?? ?? 48 8D 4D FF FF 15 ?? ?? ?? ?? 90 80 7D 0F 00 0F 85 ?? ?? ?? ?? ?? ?? ?? ?? ?? 48 8B C8 45 33 C0 33 D2 E8 ?? ?? ?? ?? 85 C0 74 ??",
-            offset: 31,
-        },
-        expected: "E8 ?? ?? ?? ??",
-        action: Action::Jump {
-            target: Anchor {
-                signature: "E8 ?? ?? ?? ?? 48 8B C8 E8 ?? ?? ?? ?? B3 01 48 8D 4D 1F FF 15 ?? ?? ?? ??",
-                offset: 0,
+    patches: &[
+        Patch {
+            name: "startup",
+            anchor: Anchor {
+                // jump only after the local QString objects have been initialized.
+                signature: "48 8D 4D 07 FF 15 ?? ?? ?? ?? 48 8D 4D FF FF 15 ?? ?? ?? ?? 90 80 7D 0F 00 0F 85 ?? ?? ?? ?? ?? ?? ?? ?? ?? 48 8B C8 45 33 C0 33 D2 E8 ?? ?? ?? ?? 85 C0 74 ??",
+                offset: 31,
             },
-            verify: Some(Verify::Rel8(Rel8 {
-                displacement_offset: 52,
-                instruction_end: 53,
-            })),
+            expected: "E8 ?? ?? ?? ??",
+            action: Action::Jump {
+                target: Anchor {
+                    signature: "E8 ?? ?? ?? ?? 48 8B C8 E8 ?? ?? ?? ?? B3 01 48 8D 4D 1F FF 15 ?? ?? ?? ??",
+                    offset: 0,
+                },
+                verify: Some(Verify::Rel8(Rel8 {
+                    displacement_offset: 52,
+                    instruction_end: 53,
+                })),
+            },
         },
-    }],
+        Patch {
+            name: "write-guard",
+            anchor: Anchor {
+                signature: "85 FF ?? ?? 85 DB 75 ?? 49 8B CE E8 ?? ?? ?? ?? 48 8B F0",
+                offset: 2,
+            },
+            expected: "75",
+            action: Action::Bytes(&[0xEB]),
+        },
+    ],
 };
