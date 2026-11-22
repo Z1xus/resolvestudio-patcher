@@ -17,7 +17,7 @@ pub const X86_64: Profile = Profile {
     builds: &[Build {
         version: Version([21, 2, 0, 6]),
         original_sha256: "0dce18d978a877d4c40aa894d54f9e5d6d8db78950ab60c9b27b41dfa8859689",
-        patched_sha256: "5de7d901e0fd14ed5dc00e1b7f82512d5ee542ac081927dce054bb989a888522",
+        patched_sha256: "b455f0235c7669b6374f11718a393bd3a484480f7fdb37f375d15d26095b7240",
     }],
     patches: &[
         Patch {
@@ -39,15 +39,6 @@ pub const X86_64: Profile = Profile {
             },
         },
         Patch {
-            name: "activation",
-            anchor: Anchor {
-                signature: "48 89 DF E8 ?? ?? ?? ?? 66 66 66 66 66 66 2E 0F 1F 84 00 00 00 00 00 55 48 89 E5 ?? ?? ?? ?? 5D C3 66 0F 1F 44 00 00 55 48 89 E5 0F B6 47 0A 5D C3",
-                offset: 27,
-            },
-            expected: "0F B6 47 09",
-            action: Action::Bytes(&[0x31, 0xC0, 0xB0, 0x01]),
-        },
-        Patch {
             name: "render-guard",
             anchor: Anchor {
                 signature: "E8 ?? ?? ?? ?? 48 89 C7 E8 ?? ?? ?? ?? 48 3D",
@@ -67,7 +58,7 @@ pub const ARM64: Profile = Profile {
     builds: &[Build {
         version: Version([21, 2, 0, 6]),
         original_sha256: "95ad56280c0a5c2498c79e99e7d287713e014a663a90a3e96dd353967d1999c3",
-        patched_sha256: "60393e5f008438a62fabe4cade2c39c7ecfefd4b5459f399c6d7608234c676ff",
+        patched_sha256: "a82418f3c8e648c50673d143e6bb6101eab73e29a12a3538fa9f131ab29a1747",
     }],
     patches: &[
         Patch {
@@ -85,15 +76,6 @@ pub const ARM64: Profile = Profile {
                 link: false,
                 verify: Some(28),
             },
-        },
-        Patch {
-            name: "activation",
-            anchor: Anchor {
-                signature: "?? ?? ?? ?? C0 03 5F D6 00 28 40 39 C0 03 5F D6 08 20 40 39 1F 05 00 71 A1 03 00 54",
-                offset: 0,
-            },
-            expected: "00 24 40 39",
-            action: Action::Bytes(&[0x20, 0x00, 0x80, 0x52]),
         },
         Patch {
             name: "render-guard",
