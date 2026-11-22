@@ -36,6 +36,7 @@ check the result with `sha256sum /opt/resolve/bin/resolve`:
 
 | version | original | patched |
 | --- | --- | --- |
+| 21.1.1.10 | `2462f80bff8d545516fbc85a7fb470811b4f1ae75a0dfff8026bf6db7c3483e5` | `3fd49055041e7225da16220dca914c509061ff153f2170203ee45d20d5209ae7` |
 | 21.2.0.6 | `e38b3f27b8b15c1cd844753e9126741dd5dfdb2c56dade4cc4d5b573963cdc56` | `fa4d58d03c2e66cf3e599691bedc04a89fd2ccead248bd2ef13ff402307671c6` |
 
 restore:

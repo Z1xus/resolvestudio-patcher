@@ -11,11 +11,18 @@ pub const PROFILE: Profile = Profile {
         min: Version([21, 1, 1, 0]),
         max: Version([21, 2, u32::MAX, u32::MAX]),
     },
-    builds: &[Build {
-        version: Version([21, 2, 0, 6]),
-        original_sha256: "e38b3f27b8b15c1cd844753e9126741dd5dfdb2c56dade4cc4d5b573963cdc56",
-        patched_sha256: "fa4d58d03c2e66cf3e599691bedc04a89fd2ccead248bd2ef13ff402307671c6",
-    }],
+    builds: &[
+        Build {
+            version: Version([21, 1, 1, 10]),
+            original_sha256: "2462f80bff8d545516fbc85a7fb470811b4f1ae75a0dfff8026bf6db7c3483e5",
+            patched_sha256: "3fd49055041e7225da16220dca914c509061ff153f2170203ee45d20d5209ae7",
+        },
+        Build {
+            version: Version([21, 2, 0, 6]),
+            original_sha256: "e38b3f27b8b15c1cd844753e9126741dd5dfdb2c56dade4cc4d5b573963cdc56",
+            patched_sha256: "fa4d58d03c2e66cf3e599691bedc04a89fd2ccead248bd2ef13ff402307671c6",
+        },
+    ],
     patches: &[
         Patch {
             name: "startup",

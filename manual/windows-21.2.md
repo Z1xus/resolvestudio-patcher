@@ -47,6 +47,7 @@ check the result with `Get-FileHash "C:\Program Files\Blackmagic Design\DaVinci 
 
 | version | original | patched |
 | --- | --- | --- |
+| 21.1.1.10 | `1a109e719f2d5e20167ecd9e0f1a37407cf62702fcea366e5e7f6dbbdb826f83` | `7f202c70454f9b5e8bd202632357e98cf61f60b07cf275872077740ef97579e2` |
 | 21.2.0.6 | `58ea8835bc2f3a8b5266978178f0a3833474ad3095e4e9c1b319d9a7e50ae150` | `52bafadce253118960bd7d32f73c4a6912cb58886fe1168bd5e305548717f694` |
 
 restore:

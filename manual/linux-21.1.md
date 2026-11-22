@@ -21,6 +21,13 @@ substr($d, $p, 5) =~ /\A\xE8....\z/s or die "unexpected bytes\n";
 $c = pack("H*", "e900000000");
 substr($c, 1, 4) = pack("l<", at(qr/\xBF\x01\x00\x00\x00\xE8....\xE8....\x48\x89\xC7\xE8....\xB0\x01/s) + 0 - $p - 5);
 substr($o, $p, 5) = $c;
+$p = at(qr/\x48\x8B\x7C\x24\x20\xBE\x02\x00\x00\x00\xBA\x08\x00\x00\x00\xE8....\x41\x09\xEE..\x48\x89\xDF\xE8/s) + 23;
+substr($d, $p, 2) =~ /\A\x75\x60\z/s or die "unexpected bytes\n";
+$c = pack("H*", "eb60");
+substr($o, $p, 2) = $c;
+for $p (all(qr/\x48\xB9\xCC\xCC\xCC\xCC\xCC\xCC\xCC\x0C\x48\x39\xC8\x0F\x87....\xE8....\x48\x89\xC7\xE8....\x48\x3D/s)) { $p += 34;
+substr($d, $p, 4) =~ /\A\xC1\x27\x09\x00\z/s or die "unexpected bytes\n";
+substr($o, $p, 4) = pack("H*", "ffffff7f"); }
 seek F, 0, 0; print F $o;
 ' /opt/resolve/bin/resolve
 ```
@@ -29,8 +36,8 @@ check the result with `sha256sum /opt/resolve/bin/resolve`:
 
 | version | original | patched |
 | --- | --- | --- |
-| 21.0.4.5 | `1092888fe6fc8e12339a9ea0fc38985089d486a8f9b97bc8ec922649e866fbbd` | `8e068bc61b1f3e9ecd031f67463a01a17d08f99dc5fcf94ec18dee1ee62a465e` |
-| 21.1.0.14 | `23d1bedf6f87fc26979cdaf1b4b5c3beef3bbcbefb34207a750450adef29fea2` | `3861df318072d83a187dd8a6aaf9136c055137c611fa28e1915fa61ff1e3e8a3` |
+| 21.0.4.5 | `1092888fe6fc8e12339a9ea0fc38985089d486a8f9b97bc8ec922649e866fbbd` | `5aa7e1459c99ae6e9ed2caf67d418024f862ab0b83083e8d48c75b631563e258` |
+| 21.1.0.17 | `99d4e0a46d63cbfe71ce4b30f23c5654ffbdd17d782d9368986cecd159e415d0` | `d681880c11b8aac4c50791355bb3dd43557a4eb80c48d782f3b2f99ccb167b88` |
 | 21.2.0.6 | `e38b3f27b8b15c1cd844753e9126741dd5dfdb2c56dade4cc4d5b573963cdc56` | `c49b889ef90ecb38bbeba846d41191f9fc685046683f59b8096fbde07e82a278` |
 
 restore:
