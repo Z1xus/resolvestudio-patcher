@@ -118,9 +118,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          gh release create "nightly-$(date -u +%Y%m%d)-${GITHUB_SHA:0:7}" \
-            resolvestudio-patcher-linux-x86_64 resolvestudio-patcher-windows-x86_64.exe BUILD.txt SHA256SUMS \
-            resolvestudio-patcher-macos-x86_64 resolvestudio-patcher-macos-arm64 \
-            --target "$GITHUB_SHA" \
-            --notes "Built from [${GITHUB_SHA:0:7}](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}). See the [workflow run](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})." \
-            --latest
+          tag="nightly-$(date -u +%Y%m%d)-${GITHUB_SHA:0:10}"
+          files="resolvestudio-patcher-linux-x86_64 resolvestudio-patcher-windows-x86_64.exe BUILD.txt SHA256SUMS resolvestudio-patcher-macos-x86_64 resolvestudio-patcher-macos-arm64"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" $files --clobber
+          else
+            gh release create "$tag" $files \
+              --target "$GITHUB_SHA" \
+              --notes "Built from [${GITHUB_SHA:0:10}](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}). See the [workflow run](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})." \
+              --latest
+          fi
