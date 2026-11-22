@@ -15,7 +15,7 @@ pub const PROFILE: Profile = Profile {
     builds: &[Build {
         version: Version([21, 2, 0, 6]),
         original_sha256: "58ea8835bc2f3a8b5266978178f0a3833474ad3095e4e9c1b319d9a7e50ae150",
-        patched_sha256: "2908c31e9a3135e34beffa7e73e7ebf1e3699ef23d443823bac75677623f71fa",
+        patched_sha256: "52bafadce253118960bd7d32f73c4a6912cb58886fe1168bd5e305548717f694",
     }],
     patches: &[
         Patch {
@@ -50,6 +50,15 @@ pub const PROFILE: Profile = Profile {
                     },
                 ],
             },
+        },
+        Patch {
+            name: "write-guard",
+            anchor: Anchor {
+                signature: "85 FF ?? ?? 85 DB 75 ?? 49 8B CE E8 ?? ?? ?? ?? 48 8B F0 49 8B CE E8 ?? ?? ?? ?? 8B D8 E8",
+                offset: 2,
+            },
+            expected: "75 5B",
+            action: Action::Bytes(&[0xEB, 0x5B]),
         },
         Patch {
             name: "render-guard",

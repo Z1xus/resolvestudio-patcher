@@ -26,6 +26,10 @@ if ($b[$t] -ne 0xe8) { throw "invalid call reference" }
 $t += 5 + [BitConverter]::ToInt32($b, $t + 1)
 [BitConverter]::GetBytes([int]($t - $p - 13)).CopyTo($c, 9)
 $c.CopyTo($b, $p)
+$p = (At '\x85\xFF..\x85\xDB\x75.\x49\x8B\xCE\xE8....\x48\x8B\xF0\x49\x8B\xCE\xE8....\x8B\xD8\xE8') + 2
+if ($s.Substring($p, 2) -cnotmatch '(?s)\A\x75\x5B\z') { throw "unexpected bytes" }
+$c = [byte[]](0xeb,0x5b)
+$c.CopyTo($b, $p)
 $m = [regex]::Matches($s, "(?s)(?=\xB8\x67\x66\x66\x66\xF7\xE9\xC1\xFA\x03\x8B\xC2\xC1\xE8\x1F\x03\xD0\x8D\x04\x92\xC1\xE0\x02\x3B\xC8\x0F\x85....\xE8....\x48\x8B\xC8\xE8....\x3D)")
 if ($m.Count -lt 1) { throw "signature not found" }
 foreach ($x in $m) {
@@ -43,7 +47,7 @@ check the result with `Get-FileHash "C:\Program Files\Blackmagic Design\DaVinci 
 
 | version | original | patched |
 | --- | --- | --- |
-| 21.2.0.6 | `58ea8835bc2f3a8b5266978178f0a3833474ad3095e4e9c1b319d9a7e50ae150` | `2908c31e9a3135e34beffa7e73e7ebf1e3699ef23d443823bac75677623f71fa` |
+| 21.2.0.6 | `58ea8835bc2f3a8b5266978178f0a3833474ad3095e4e9c1b319d9a7e50ae150` | `52bafadce253118960bd7d32f73c4a6912cb58886fe1168bd5e305548717f694` |
 
 restore:
 
